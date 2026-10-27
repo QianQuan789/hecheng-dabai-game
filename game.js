@@ -48,8 +48,39 @@
     over: "assets/audio/game-over.mp3"
   };
 
-  // 背景音乐：放入 assets/audio/bgm.m4a（缺失时自动静音跳过）。
-  const BGM_PATH = "assets/audio/bgm.m4a";
+  // 背景音乐：放入 assets/audio/bgm.mp3（缺失时自动静音跳过）。
+  const BGM_PATH = "assets/audio/bgm.mp3";
+
+  // 顶部歌词（与背景音乐同步滚动显示）。
+  const LYRICS = [
+    "你一句别怂 我就敢往前冲",
+    "白老鼠老师 我还记得你",
+    "一局一局 吸干我的哈哈币",
+    "白老鼠老师 我还记得你",
+    "那些得吃的梦 你替我扛起",
+    "巅峰赛的第一盾 勇敢者随便做",
+    "你笑着说下把吃 别先把自己看轻",
+    "多少个深夜上车 我还在做得吃梦",
+    "你说过的每句话 都在我心里立起",
+    "后来风吹过来 我也学会了",
+    "不躲不退 卡好战备去吸血",
+    "白老鼠老师 我还记得你",
+    "一局一局 吸干我的哈哈币",
+    "白老鼠老师 我还记得你",
+    "那些得吃的梦 你替我扛起",
+    "如果有一天 我真得吃了",
+    "也会想起 曾经的盾牌老祖",
+    "想起你卡好战备 说别怕亏币",
+    "说下一把 总会有人能得吃",
+    "白老鼠老师 我还记得你",
+    "一局一局 吸干我的哈哈币",
+    "白老鼠老师 我还记得你",
+    "那些得吃的梦 你替我扛起",
+    "白老鼠老师 我还记得你",
+    "亏再多 我也会继续上车",
+    "白老鼠老师 我还记得你",
+    "你给过的痛苦 我一直放在心里"
+  ];
 
   const SCORE_TABLE = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45];
   const STORAGE_BEST = "suikaLobby.best.v1";
@@ -76,6 +107,9 @@
   const controlHint = document.getElementById("controlHint");
   const levelLegend = document.getElementById("levelLegend");
   const liveRegion = document.getElementById("liveRegion");
+  const lyricsPrev = document.getElementById("lyricsPrev");
+  const lyricsCurrent = document.getElementById("lyricsCurrent");
+  const lyricsNext = document.getElementById("lyricsNext");
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const random = (min, max) => min + Math.random() * (max - min);
@@ -134,6 +168,8 @@
   const audioProbes = {};
   let audioContext = null;
   let bgm = null;
+  let lyricsLive = false;
+  let lastLyricsIndex = -1;
 
   function randomSpawnLevel() {
     return Math.floor(Math.random() * 5);
@@ -188,6 +224,29 @@
       audioContext.resume().catch(() => {});
     }
     startBackgroundMusic();
+  }
+
+  function currentLyricsIndex() {
+    if (!bgm || !isFinite(bgm.duration) || bgm.duration <= 0) return 0;
+    const progress = clamp(bgm.currentTime / bgm.duration, 0, 1);
+    return Math.min(LYRICS.length - 1, Math.floor(progress * LYRICS.length));
+  }
+
+  function updateLyrics() {
+    const started =
+      bgm && isFinite(bgm.duration) && bgm.duration > 0 && bgm.currentTime > 0;
+    if (!lyricsLive) {
+      if (!started) return;
+      lyricsLive = true;
+    }
+
+    const index = currentLyricsIndex();
+    if (index === lastLyricsIndex) return;
+    lastLyricsIndex = index;
+
+    lyricsPrev.textContent = index > 0 ? LYRICS[index - 1] : "";
+    lyricsCurrent.textContent = LYRICS[index];
+    lyricsNext.textContent = index < LYRICS.length - 1 ? LYRICS[index + 1] : "";
   }
 
   function playFileSound(name) {
@@ -1197,6 +1256,7 @@
     const elapsed = Math.min((timestamp - lastFrameTime) / 1000, 0.05);
     lastFrameTime = timestamp;
     dropClock += elapsed;
+    updateLyrics();
 
     if (state === "playing" && !document.hidden) {
       cooldown = Math.max(0, cooldown - elapsed);
